@@ -60,6 +60,9 @@
     formData.append('description', description.value);
     formData.append('price', price.value);
     formData.append('image', image.value);
+
+  // 从 localStorage 或 cookie 中获取 token 
+  const token = localStorage.getItem('token'); // 用户登录时保存的 JWT
   
     try {
       const response = await axios.post('/api/products', formData, {

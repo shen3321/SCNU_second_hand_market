@@ -49,7 +49,7 @@
       localStorage.setItem('jwt_token', token);
   
       // 导航到其他页面，如首页
-      router.push('/home');
+      router.push('/MainPage');
     } catch (err) {
       error.value = 'Login failed. Please check your credentials.';
     } finally {

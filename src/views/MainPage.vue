@@ -1,29 +1,29 @@
 <template>
-    <div>
-      <h1>Find yourself at home</h1>
-  
-      <!-- 商品列表渲染 -->
-      <div v-if="loading">加载中...</div>
-      <div v-if="error">{{ error }}</div>
-      <div v-if="products.length > 0" class="product-list">
-        <div v-for="product in products" :key="product.id" class="product-item">
-          <img :src="product.image" alt="Product Image" class="product-image" />
-          <div class="product-details">
-            <h2>{{ product.title }}</h2>
-            <p>{{ product.description }}</p>
-            <p>价格: {{ product.price }} 元</p>
-            <button @click="goToProductDetail(product.id)">我想要</button>
-          </div>
+  <div>
+    <h1>Find yourself at home</h1>
+
+    <!-- 商品列表渲染 -->
+    <div v-if="loading">加载中...</div>
+    <div v-if="error">{{ error }}</div>
+    <div v-if="products.length > 0" class="product-list">
+      <div v-for="product in products" :key="product.id" class="product-item">
+        <img :src="product.image" alt="Product Image" class="product-image" />
+        <div class="product-details">
+          <h2>{{ product.title }}</h2>
+          <p>{{ product.description }}</p>
+          <p>价格: {{ product.price }} 元</p>
+          <button @click="goToProductDetail(product.id)">我想要</button>
         </div>
       </div>
-  
-      <!-- 登录和注册按钮 -->
-      <div class="auth-buttons">
-        <RouterLink to="/login" class="btn">Login</RouterLink>
-        <RouterLink to="/register" class="btn">Register</RouterLink>
-      </div>
     </div>
-  </template>
+
+    <!-- 登录和注册按钮 -->
+    <div class="auth-buttons">
+      <RouterLink to="/login" class="btn">Login</RouterLink>
+      <RouterLink to="/register" class="btn">Register</RouterLink>
+    </div>
+  </div>
+</template>
   
   <script setup>
   import { ref, onMounted } from 'vue';
@@ -36,18 +36,31 @@
   const error = ref('');
   const router = useRouter();
   
+  //const fetchProducts = async () => {
+    //loading.value = true;
+    //try {
+      //const response = await axios.post('/api/products'); // 获取商品信息
+      //products.value = response.data;
+    //} catch (err) {
+      //console.error('Error fetching products:', err);
+      //error.value = '获取商品信息失败';
+    //} finally {
+      //loading.value = false;
+   // }
+  //};
+
   const fetchProducts = async () => {
-    loading.value = true;
-    try {
-      const response = await axios.post('/api/products'); // 获取商品信息
-      products.value = response.data;
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      error.value = '获取商品信息失败';
-    } finally {
-      loading.value = false;
-    }
-  };
+  loading.value = true;
+  try {
+    const response = await axios.get('http://localhost:8012/products/getallproducts'); // 改成 GET 请求
+    products.value = response.data;
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    error.value = '获取商品信息失败';
+  } finally {
+    loading.value = false;
+  }
+};
   
   onMounted(() => {
     fetchProducts();

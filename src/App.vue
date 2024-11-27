@@ -10,7 +10,7 @@
         <RouterLink to="/register">Register</RouterLink>
         <RouterLink to="/UploadProduct">UploadProduct</RouterLink>
         <RouterLink to="/MainPage">MainPage</RouterLink>
-        <RouterLink to="/MyProduct">EditProduct</RouterLink>
+        <RouterLink to="/EditProduct">EditProduct</RouterLink>
       </nav>
     </div>
   </header>

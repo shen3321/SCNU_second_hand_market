@@ -1,28 +1,38 @@
 <template>
-  <div class="login-container">
-    <form @submit.prevent="handleLogin" class="login-form">
-      <h2>登录</h2>
-      <div class="form-group">
-        <input 
-          v-model="username" 
-          type="text" 
-          placeholder="用户名"
-          required
-        />
+  <div class="page">
+    <!-- 左侧内容 -->
+
+
+    <!-- 右侧内容 -->
+    <div class="right-section">
+      <div class="content-wrapper"></div>
+      <!-- 标题文字 -->
+      <div class="heading-text">
+        <h1>Secondhand Market for SCNU</h1>
       </div>
-      <div class="form-group">
-        <input 
-          v-model="password" 
-          type="password" 
-          placeholder="密码"
+
+      <!-- 登录表单 -->
+      <form @submit.prevent="handleLogin" class="login-form">
+        <input
+          v-model="username"
+          type="text"
+          placeholder="userID"
           required
+          class="input"
         />
-      </div>
-      <button type="submit" :disabled="loading">
-        {{ loading ? '登录中...' : '登录' }}
-      </button>
-      <div v-if="error" class="error">{{ error }}</div>
-    </form>
+        <input
+          v-model="password"
+          type="password"
+          placeholder="password"
+          required
+          class="input"
+        />
+        <button type="submit" :disabled="loading" class="login-button">
+          {{ loading ? '登录中...' : 'Login' }}
+        </button>
+        <div v-if="error" class="error-message">{{ error }}</div>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -47,25 +57,12 @@ const handleLogin = async () => {
       password: password.value
     });
 
-    console.log('Login response:', response.data);
-
     const { token } = response.data;
     if (token) {
-      // 保存 token
       localStorage.setItem('token', token);
-      
-      // 解析 token 中的用户信息（JWT的payload部分）
       const payload = JSON.parse(atob(token.split('.')[1]));
       localStorage.setItem('userid', payload.userID);
       localStorage.setItem('username', payload.username);
-      
-      console.log('Stored user info:', {
-        token: localStorage.getItem('token'),
-        userid: localStorage.getItem('userid'),
-        username: localStorage.getItem('username')
-      });
-
-      // 登录成功，跳转到主页
       router.push('/mainpage');
     } else {
       error.value = '登录失败：未收到有效的token';
@@ -86,53 +83,138 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-container {
+.page {
   display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #ffffff;
+}
+
+/* 左侧样式 */
+.left-section {
+  flex: 1;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.vue-logo {
+  width: 80px;
+  height: 80px;
+}
+
+.title {
+  color: #00dc82;
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.subtitle {
+  color: #00dc82;
+  font-size: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.access-text {
+  color: #666;
+  margin: 1rem 0;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.link {
+  color: #00dc82;
+  text-decoration: none;
+}
+
+/* 右侧样式 */
+.right-section {
+  flex: 1;
+  padding: 4rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2rem;
+}
+
+.heading-text {
+  text-align: right;
+  margin-bottom: 2rem;
+}
+
+.heading-text h1 {
+  font-size: 2.5rem; /* 调小字体大小 */
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.2;
+  font-weight: bold;
 }
 
 .login-form {
   width: 100%;
-  max-width: 400px;
-  padding: 20px;
-  background: white;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 1rem;
 }
 
-.form-group {
-  margin-bottom: 15px;
+.input:focus {
+  outline: none;
+  border-color: #00dc82;
 }
 
-input {
+.login-button {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-}
-
-button {
-  width: 100%;
-  padding: 10px;
-  background-color: #4CAF50;
+  padding: 0.75rem;
+  background-color: #00dc82;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 1rem;
   cursor: pointer;
-  font-size: 16px;
+  transition: background-color 0.3s;
 }
 
-button:disabled {
-  background-color: #cccccc;
+.login-button:hover {
+  background-color: #00b368;
 }
 
-.error {
-  color: red;
-  margin-top: 10px;
+.login-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #dc2626;
   text-align: center;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .page {
+    flex-direction: column;
+  }
+  
+  .right-section {
+    align-items: center;
+    padding: 2rem;
+  }
+  
+  .heading-text {
+    text-align: center;
+  }
 }
 </style>

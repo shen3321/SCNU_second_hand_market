@@ -1,113 +1,75 @@
-<template>
-  <div class="container">
-    <h1>修改商品信息</h1>
-    
-    <div v-if="loading" class="loading">加载中...</div>
-    <div v-if="error" class="error-message">{{ error }}</div>
-    
-    <!-- 商品列表 -->
-    <div v-if="products.length > 0" class="products-grid">
-      <div v-for="product in products" :key="product.id" class="product-item">
-        <img :src="product.image" alt="Product Image" class="product-image" />
-        <div class="product-details">
-          <h2>{{ product.title }}</h2>
-          <p>{{ product.description }}</p>
-          <p class="price">价格: ¥{{ product.price }}</p>
-          <div class="button-group">
-            <button @click="editProduct(product)" class="edit-btn">修改</button>
-            <button @click="deleteProduct(product.id)" class="delete-btn">删除</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 编辑表单 -->
-    <div v-if="selectedProduct" class="edit-form">
-      <h2>编辑商品信息</h2>
-      <form @submit.prevent="updateProduct">
-        <div class="form-group">
-          <label>商品标题:</label>
-          <input v-model="editedProduct.title" required />
-        </div>
-        
-        <div class="form-group">
-          <label>商品描述:</label>
-          <textarea v-model="editedProduct.description" required></textarea>
-        </div>
-        
-        <div class="form-group">
-          <label>商品价格:</label>
-          <input v-model="editedProduct.price" type="number" step="0.01" required />
-        </div>
-        
-        <div class="button-group">
-          <button type="submit" class="save-btn">保存修改</button>
-          <button type="button" @click="cancelEdit" class="cancel-btn">取消</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
-// 声明响应式变量
 const products = ref([]);
 const loading = ref(false);
 const error = ref('');
 const selectedProduct = ref(null);
-const editedProduct = ref({ title: '', description: '', price: 0 });
+const editedProduct = ref({
+  title: '',
+  description: '',
+  price: 0,
+  status: '',
+});
 
+// 获取商品信息
 const fetchUserProducts = async () => {
   loading.value = true;
   error.value = '';
   
   const userid = localStorage.getItem('userid');
-  const token = localStorage.getItem('token');
   
-  console.log('Checking credentials:', { userid, token });
-
-  if (!userid || !token) {
+  if (!userid) {
     error.value = '用户未登录';
     loading.value = false;
     return;
   }
-
+  
   try {
-    const response = await axios.get(`http://localhost:8012/products/userproducts/${userid}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
+    const response = await axios.get(`http://localhost:8012/products/userproducts`, {
+      params: {
+        userID: userid
       }
     });
-
-    console.log('Response received:', response.data);
-    products.value = response.data;
+    
+    console.log('获取到的商品数据:', response.data);
+    
+    // 直接使用返回的数组
+    if (Array.isArray(response.data)) {
+      products.value = response.data;
+    } else if (response.data) {
+      // 如果返回单个对象，将其转换为数组
+      products.value = [response.data];
+    } else {
+      products.value = [];
+    }
+    
+    console.log('处理后的商品数据:', products.value);
   } catch (err) {
-    console.error('Error fetching products:', err);
-    error.value = '获取商品信息失败';
+    console.error('获取商品失败:', err);
+    error.value = err.response?.data?.message || '获取商品信息失败';
   } finally {
     loading.value = false;
   }
 };
 
-// 编辑商品
+// 其他方法保持不变...
 const editProduct = (product) => {
   selectedProduct.value = product;
-  editedProduct.value = { 
-    ...product,
-    userid: localStorage.getItem('userid')
+  editedProduct.value = { ...product };
+};
+
+const cancelEdit = () => {
+  selectedProduct.value = null;
+  editedProduct.value = {
+    title: '',
+    description: '',
+    price: 0,
+    status: ''
   };
 };
 
-// 取消编辑
-const cancelEdit = () => {
-  selectedProduct.value = null;
-  editedProduct.value = { title: '', description: '', price: 0 };
-};
-
-// 更新商品信息
 const updateProduct = async () => {
   const token = localStorage.getItem('token');
   const userid = localStorage.getItem('userid');
@@ -172,78 +134,184 @@ const deleteProduct = async (productId) => {
 };
 
 onMounted(() => {
+  console.log('组件已挂载');
   fetchUserProducts();
 });
 </script>
 
+<template>
+  <div class="edit-products-container">
+    <h2 class="title">管理我的商品</h2>
+    
+    <!-- 调试信息 -->
+    <div class="debug-info" style="margin: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+      <p>商品数量: {{ products.length }}</p>
+      <p>加载状态: {{ loading ? '加载中' : '加载完成' }}</p>
+      <p>错误信息: {{ error || '无' }}</p>
+    </div>
+    
+    <div v-if="error" class="error-message">{{ error }}</div>
+    
+    <div v-if="loading" class="loading">加载中...</div>
+    
+    <div v-else>
+      <div v-if="products.length === 0" class="no-products">
+        暂无商品信息
+      </div>
+      
+      <div v-else class="products-list">
+        <div v-for="product in products" :key="product.id" class="product-item">
+          <div class="product-info">
+            <img 
+              :src="product.imageUrl" 
+              :alt="product.title" 
+              class="product-image"
+              @error="$event.target.src = '/placeholder.png'"
+            />
+            <div class="product-details">
+              <h3>{{ product.title }}</h3>
+              <p>{{ product.description }}</p>
+              <p class="price">价格: ¥{{ product.price }}</p>
+              <p>状态: {{ product.status }}</p>
+              <p class="created-time">创建时间: {{ new Date(product.createdAt).toLocaleString() }}</p>
+            </div>
+          </div>
+          
+          <div class="product-actions">
+            <button @click="editProduct(product)" class="edit-btn">
+              编辑
+            </button>
+            <button @click="deleteProduct(product.id)" class="delete-btn">
+              删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 编辑表单 -->
+    <div v-if="selectedProduct" class="edit-form">
+      <h3>编辑商品</h3>
+      <form @submit.prevent="updateProduct">
+        <div class="form-group">
+          <label for="title">标题</label>
+          <input
+            id="title"
+            v-model="editedProduct.title"
+            type="text"
+            required
+          />
+        </div>
+        
+        <div class="form-group">
+          <label for="description">描述</label>
+          <textarea
+            id="description"
+            v-model="editedProduct.description"
+            required
+          ></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="price">价格</label>
+          <input
+            id="price"
+            v-model="editedProduct.price"
+            type="number"
+            step="0.01"
+            required
+          />
+        </div>
+        
+        <div class="form-group">
+          <label for="status">状态</label>
+          <select id="status" v-model="editedProduct.status">
+            <option value="unsold">未售出</option>
+            <option value="sold">已售出</option>
+          </select>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="save-btn">保存</button>
+          <button type="button" @click="cancelEdit" class="cancel-btn">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
+
 <style scoped>
-.container {
+.edit-products-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
 }
 
-.loading {
-  text-align: center;
-  padding: 20px;
-}
-
-.error-message {
-  color: red;
-  text-align: center;
-  padding: 10px;
-  margin: 10px 0;
-}
-
-.products-grid {
+.products-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
-  margin-top: 20px;
+  padding: 20px 0;
 }
 
 .product-item {
   border: 1px solid #ddd;
   border-radius: 8px;
-  padding: 15px;
+  padding: 20px;
   background: white;
-  transition: transform 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.product-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+.product-info {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
 }
 
 .product-image {
-  width: 100%;
+  width: 200px;
   height: 200px;
   object-fit: cover;
   border-radius: 4px;
 }
 
 .product-details {
-  padding: 10px;
+  flex: 1;
+}
+
+.product-details h3 {
+  margin: 0 0 10px;
+  color: #2c3e50;
 }
 
 .price {
-  font-weight: bold;
   color: #e53e3e;
+  font-weight: bold;
+  font-size: 1.2em;
+  margin: 10px 0;
 }
 
-.button-group {
+.created-time {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.product-actions {
   display: flex;
   gap: 10px;
-  justify-content: center;
-  margin-top: 10px;
+  justify-content: flex-end;
 }
 
-.edit-btn, .delete-btn, .save-btn, .cancel-btn {
+button {
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
 }
 
 .edit-btn {
@@ -256,25 +324,6 @@ onMounted(() => {
   color: white;
 }
 
-.save-btn {
-  background-color: #48bb78;
-  color: white;
-}
-
-.cancel-btn {
-  background-color: #718096;
-  color: white;
-}
-
-.edit-form {
-  max-width: 500px;
-  margin: 20px auto;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
-}
-
 .form-group {
   margin-bottom: 15px;
 }
@@ -282,11 +331,12 @@ onMounted(() => {
 .form-group label {
   display: block;
   margin-bottom: 5px;
-  font-weight: bold;
+  color: #4a5568;
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 8px;
   border: 1px solid #ddd;
@@ -294,7 +344,29 @@ onMounted(() => {
 }
 
 .form-group textarea {
-  height: 100px;
+  min-height: 100px;
   resize: vertical;
+}
+
+.error-message {
+  color: #e53e3e;
+  background-color: #fee2e2;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #4a5568;
+}
+
+.no-products {
+  text-align: center;
+  padding: 40px;
+  color: #4a5568;
+  background: #f7fafc;
+  border-radius: 8px;
 }
 </style>

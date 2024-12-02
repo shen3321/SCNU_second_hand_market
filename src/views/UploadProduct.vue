@@ -1,71 +1,7 @@
-<template>
-  <div class="upload-container">
-    <h2>上传商品</h2>
-    <form @submit.prevent="handleUpload" class="upload-form">
-      <div class="form-group">
-        <label for="title">商品标题：</label>
-        <input 
-          id="title" 
-          v-model="title" 
-          type="text" 
-          required 
-          class="form-input"
-          placeholder="请输入商品标题"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="description">商品描述：</label>
-        <textarea 
-          id="description" 
-          v-model="description" 
-          required 
-          class="form-input"
-          placeholder="请输入商品描述"
-        ></textarea>
-      </div>
-
-      <div class="form-group">
-        <label for="price">商品价格：</label>
-        <input 
-          id="price" 
-          v-model="price" 
-          type="number" 
-          required 
-          class="form-input"
-          min="0"
-          step="0.01"
-          placeholder="请输入商品价格"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="image">商品图片：</label>
-        <input 
-          id="image" 
-          type="file" 
-          @change="handleFileChange" 
-          accept="image/*" 
-          required 
-          class="form-input"
-        />
-      </div>
-
-      <button type="submit" :disabled="loading" class="submit-button">
-        {{ loading ? '上传中...' : '提交' }}
-      </button>
-
-      <div v-if="message" class="message success">{{ message }}</div>
-      <div v-if="error" class="message error">{{ error }}</div>
-    </form>
-  </div>
-</template>
-
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
-// 响应式变量
 const title = ref('');
 const description = ref('');
 const price = ref('');
@@ -75,160 +11,282 @@ const message = ref('');
 const error = ref('');
 const userid = ref('');
 const username = ref('');
+const email = ref('');
+const address = ref('');
 
-// 组件挂载时获取用户信息
 onMounted(() => {
-  userid.value = localStorage.getItem('userid');
-  username.value = localStorage.getItem('username');
+  const storedUserId = localStorage.getItem('userid');
+  const storedUsername = localStorage.getItem('username');
+  
+  if (!storedUserId || !storedUsername) {
+    error.value = '请先登录';
+    return;
+  }
+  
+  userid.value = storedUserId;
+  username.value = storedUsername;
 });
 
-// 处理文件选择
 const handleFileChange = (event) => {
   const file = event.target.files[0];
   if (file) {
+    // 验证文件类型
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      error.value = '只支持 JPG, PNG 或 GIF 格式的图片';
+      event.target.value = '';
+      return;
+    }
+    
+    // 验证文件大小（最大 5MB）
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      error.value = '图片大小不能超过 5MB';
+      event.target.value = '';
+      return;
+    }
+    
     image.value = file;
   }
 };
 
-// 处理表单提交
 const handleUpload = async () => {
-  // 表单验证
-  if (!title.value || !description.value || !price.value || !image.value) {
-    error.value = '请填写所有必填字段';
-    return;
-  }
-
-  loading.value = true;
-  message.value = '';
-  error.value = '';
-
-  const formData = new FormData();
-  formData.append('title', title.value);
-  formData.append('description', description.value);
-  formData.append('price', price.value);
-  formData.append('image', image.value);
-  formData.append('userid', userid.value);
-  formData.append('username', username.value);
-  formData.append('status', 'unsold');
-
-  const token = localStorage.getItem('token');
-
   try {
-    const response = await axios.post('http://localhost:8012/products/newproduct', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        'Authorization': token ? `Bearer ${token}` : ''
-      }
-    });
+    // 重置消息
+    message.value = '';
+    error.value = '';
     
-    message.value = '商品上传成功！';
-    // 清空表单
-    title.value = '';
-    description.value = '';
-    price.value = '';
-    image.value = null;
-    // 重置文件输入
-    const fileInput = document.querySelector('#image');
-    if (fileInput) fileInput.value = '';
+    // 表单验证
+    if (!title.value?.trim()) {
+      error.value = '请输入商品标题';
+      return;
+    }
+    if (!description.value?.trim()) {
+      error.value = '请输入商品描述';
+      return;
+    }
+    if (!price.value || isNaN(Number(price.value)) || Number(price.value) <= 0) {
+      error.value = '请输入有效的价格';
+      return;
+    }
+    if (!image.value) {
+      error.value = '请选择商品图片';
+      return;
+    }
+    if (!userid.value || !username.value) {
+      error.value = '用户未登录，请先登录';
+      return;
+    }
+    
+    loading.value = true;
+
+    const formData = new FormData();
+    formData.append('title', title.value.trim());
+    formData.append('description', description.value.trim());
+    formData.append('price', Number(price.value));
+    formData.append('image', image.value);
+    formData.append('userid', userid.value);
+    formData.append('username', username.value);
+    formData.append('email', email.value?.trim() || '');
+    formData.append('address', address.value?.trim() || '');
+    formData.append('status', 'unsold');
+
+    // Debug: 查看发送的数据
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+
+    const response = await axios.post(
+      'http://localhost:8012/products/newproduct',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 30000,
+      }
+    );
+
+    console.log('Upload response:', response.data);
+
+    if (response.data) {
+      message.value = '商品上传成功！';
+      // 重置表单
+      title.value = '';
+      description.value = '';
+      price.value = '';
+      email.value = '';
+      address.value = '';
+      image.value = null;
+      const fileInput = document.querySelector('#image');
+      if (fileInput) fileInput.value = '';
+    }
     
   } catch (err) {
     console.error('Upload error:', err);
-    error.value = '上传商品失败：' + (err.response?.data?.message || err.message);
+    
+    if (err.response) {
+      console.error('Error response:', err.response);
+      error.value = `上传失败: ${err.response.data?.message || err.response.statusText || '服务器错误'}`;
+    } else if (err.request) {
+      error.value = '服务器无响应，请稍后重试';
+    } else {
+      error.value = '上传出错: ' + err.message;
+    }
   } finally {
     loading.value = false;
   }
 };
 </script>
 
+<template>
+  <div class="upload-container">
+    <div v-if="error" class="error-message">{{ error }}</div>
+    <div v-if="message" class="success-message">{{ message }}</div>
+    
+    <form @submit.prevent="handleUpload" class="upload-form">
+      <div class="form-group">
+        <label for="title">商品标题 *</label>
+        <input 
+          id="title"
+          v-model="title"
+          type="text"
+          required
+          :disabled="loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="description">商品描述 *</label>
+        <textarea 
+          id="description"
+          v-model="description"
+          required
+          :disabled="loading"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="price">价格 *</label>
+        <input 
+          id="price"
+          v-model="price"
+          type="number"
+          step="0.01"
+          min="0"
+          required
+          :disabled="loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="image">商品图片 *</label>
+        <input 
+          id="image"
+          type="file"
+          accept="image/*"
+          @change="handleFileChange"
+          required
+          :disabled="loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="email">联系邮箱</label>
+        <input 
+          id="email"
+          v-model="email"
+          type="email"
+          :disabled="loading"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="address">地址</label>
+        <input 
+          id="address"
+          v-model="address"
+          type="text"
+          :disabled="loading"
+        />
+      </div>
+
+      <button 
+        type="submit"
+        :disabled="loading"
+      >
+        {{ loading ? '上传中...' : '上传商品' }}
+      </button>
+    </form>
+  </div>
+</template>
+
 <style scoped>
 .upload-container {
   max-width: 600px;
-  margin: 20px auto;
+  margin: 0 auto;
   padding: 20px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #333;
 }
 
 .upload-form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
 }
 
-label {
-  font-weight: 600;
-  color: #333;
+.error-message {
+  color: red;
+  margin-bottom: 16px;
+  padding: 10px;
+  background-color: #ffe6e6;
+  border-radius: 4px;
 }
 
-.form-input {
-  padding: 8px 12px;
+.success-message {
+  color: green;
+  margin-bottom: 16px;
+  padding: 10px;
+  background-color: #e6ffe6;
+  border-radius: 4px;
+}
+
+input, textarea {
+  padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 14px;
 }
 
-textarea.form-input {
+textarea {
   min-height: 100px;
-  resize: vertical;
 }
 
-.submit-button {
-  padding: 10px 20px;
+button {
+  padding: 12px;
   background-color: #4CAF50;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
-  transition: background-color 0.3s;
 }
 
-.submit-button:hover {
+button:hover {
   background-color: #45a049;
 }
 
-.submit-button:disabled {
+button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
 }
 
-.message {
-  padding: 10px;
-  border-radius: 4px;
-  text-align: center;
-  margin-top: 10px;
-}
-
-.success {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.error {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-input[type="file"] {
-  padding: 6px;
-}
-
-input[type="number"] {
-  width: 100%;
+input:disabled, textarea:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
 }
 </style>

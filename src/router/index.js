@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 //import About from '../views/AboutView.vue'
 import Register from '../views/Register.vue'
+import ProductDetail from '../views/ProductDetail.vue'
 
 const routes = [
   {
@@ -26,9 +27,9 @@ const routes = [
     component: () => import('../views/MainPage.vue')
   },
   {
-    path: '/ProductDetail',
+    path: '/product/:id',
     name: 'ProductDetail',
-    component: () => import('../views/ProductDetail.vue')
+    component: ProductDetail
   },
   {
     path: '/ConfirmProduct',

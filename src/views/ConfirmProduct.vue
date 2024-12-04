@@ -20,7 +20,7 @@
   
   const route = useRoute();
   const router = useRouter();
-  const product = ref(null);
+  const product = ref({});
   const loading = ref(true);
   const error = ref('');
   
@@ -28,7 +28,7 @@
   const fetchProductDetail = async () => {
     const productId = route.params.id;
     try {
-      const response = await axios.get(`/api/products/${productId}`); // 根据后端API调整
+      const response = await axios.get(`http://localhost:8012/products/getproduct/${productId}`);
       product.value = response.data;
     } catch (err) {
       console.error('获取商品详情失败:', err);
@@ -38,15 +38,32 @@
     }
   };
   
-  // 确认“我想要”操作
-  const confirmDesire = async () => {
+  // 处理确认交易
+  const handleConfirmTrade = async () => {
     try {
-      const response = await axios.post('/api/confirm-desire', { productId: product.value.id });
-      alert('交易确认成功！');
-      router.push('/'); // 跳转回主页面或其他页面
+      loading.value = true;
+      
+      // 假设用户ID从localStorage或其他状态管理中获取
+      const userId = localStorage.getItem('userId'); // 根据你的实际存储方式修改
+      
+      const tradeData = {
+        userId: userId,
+        productId: product.value.id,
+        status: 'pending' // 或其他初始状态
+      };
+  
+      // 发送确认交易请求
+      const response = await axios.post('http://localhost:8012/order/confirmorders', tradeData);
+      
+      if (response.data) {
+        // 交易成功，跳转到成功页面或其他页面
+        router.push('/trade-success');
+      }
     } catch (err) {
       console.error('确认交易失败:', err);
-      alert('确认交易失败，请重试。');
+      error.value = '确认交易失败，请重试';
+    } finally {
+      loading.value = false;
     }
   };
   

@@ -22,37 +22,29 @@
       <RouterLink to="/login" class="btn">Login</RouterLink>
       <RouterLink to="/register" class="btn">Register</RouterLink>
     </div>
+    <!-- 假设这是你的"我想要"按钮 -->
+    <button @click="goToProductDetail(product.id)">我想要</button>
+
+  
+
   </div>
 </template>
   
-  <script setup>
-  import { ref, onMounted } from 'vue';
-  import axios from 'axios';
-  import { useRouter } from 'vue-router';
-  
-  // 获取商品信息
-  const products = ref([]);
-  const loading = ref(false);
-  const error = ref('');
-  const router = useRouter();
-  
-  //const fetchProducts = async () => {
-    //loading.value = true;
-    //try {
-      //const response = await axios.post('/api/products'); // 获取商品信息
-      //products.value = response.data;
-    //} catch (err) {
-      //console.error('Error fetching products:', err);
-      //error.value = '获取商品信息失败';
-    //} finally {
-      //loading.value = false;
-   // }
-  //};
+<script setup>
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
 
-  const fetchProducts = async () => {
+// 获取商品信息
+const products = ref([]);
+const loading = ref(false);
+const error = ref('');
+const router = useRouter();
+
+const fetchProducts = async () => {
   loading.value = true;
   try {
-    const response = await axios.get('http://localhost:8012/products/getallproducts'); // 改成 GET 请求
+    const response = await axios.get('http://localhost:8012/products/getallproducts');
     products.value = response.data;
   } catch (err) {
     console.error('Error fetching products:', err);
@@ -61,16 +53,16 @@
     loading.value = false;
   }
 };
-  
-  onMounted(() => {
-    fetchProducts();
-  });
-  
-  // 跳转到商品详情页
-  const goToProductDetail = (productId) => {
-    router.push(`/product/${productId}`);
-  };
-  </script>
+
+onMounted(() => {
+  fetchProducts();
+});
+
+// 修改跳转函数
+const goToProductDetail = (productId) => {
+  router.push(`/product/${productId}`); // 使用路由路径而不是文件路径
+};
+</script>
   
   <style scoped>
   .auth-buttons {
